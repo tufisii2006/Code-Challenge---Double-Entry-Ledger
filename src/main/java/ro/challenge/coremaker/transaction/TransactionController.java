@@ -12,9 +12,15 @@ import java.util.UUID;
 @RestController
 public class TransactionController implements TransactionsApi {
 
+    private final TransactionService transactionService;
+
+    public TransactionController(TransactionService transactionService) {
+        this.transactionService = transactionService;
+    }
+
     @Override
     public ResponseEntity<Transaction> createTransaction(String idempotencyKey, CreateTransactionRequest createTransactionRequest) {
-        return null;
+        return ResponseEntity.ok(transactionService.createTransaction(idempotencyKey, createTransactionRequest));
     }
 
     @Override

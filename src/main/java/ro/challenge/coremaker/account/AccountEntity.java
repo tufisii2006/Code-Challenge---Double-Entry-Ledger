@@ -1,7 +1,10 @@
 package ro.challenge.coremaker.account;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -36,7 +39,7 @@ public class AccountEntity {
     @Column(name = "version", nullable = false)
     private long version;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private Instant createdAt;
 

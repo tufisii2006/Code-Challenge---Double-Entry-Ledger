@@ -1,21 +1,9 @@
 package ro.challenge.coremaker.transaction;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Singular;
-import lombok.ToString;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import ro.challenge.coremaker.entry.EntryEntity;
 
 import java.time.Instant;
@@ -28,10 +16,12 @@ import java.util.Objects;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString(exclude = "entries")
+@EntityListeners(AuditingEntityListener.class)
 public class TransactionEntity {
 
     @Id
     @EqualsAndHashCode.Include
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", length = 36, updatable = false)
     private String id;
 
@@ -46,6 +36,7 @@ public class TransactionEntity {
     private String idempotencyKey;
 
     @Column(name = "recorded_at", nullable = false, updatable = false)
+    @CreationTimestamp
     private Instant recordedAt;
 
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.PERSIST)
@@ -58,11 +49,9 @@ public class TransactionEntity {
                               String idempotencyKey,
                               Instant recordedAt,
                               @Singular List<EntryEntity> entries) {
-        this.id = Objects.requireNonNull(id);
         this.description = Objects.requireNonNull(description);
         this.reverses = reverses;
         this.idempotencyKey = Objects.requireNonNull(idempotencyKey);
-        this.recordedAt = Objects.requireNonNull(recordedAt);
         if (entries.size() < 2) {
             throw new IllegalArgumentException("A transaction needs at least two entries");
         }
