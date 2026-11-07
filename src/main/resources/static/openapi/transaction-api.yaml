@@ -195,14 +195,6 @@ components:
           description: Positive decimal string with no more decimal places than the currency allows.
           example: "100.00"
 
-    ReverseTransactionRequest:
-      type: object
-      properties:
-        description:
-          type: string
-          maxLength: 255
-          description: Optional. Defaults to "Reversal of <original id>".
-
     Transaction:
       type: object
       required: [id, description, recordedAt, entries]
@@ -241,10 +233,6 @@ components:
         amount:
           type: string
           example: "100.00"
-        balanceAfter:
-          type: string
-          description: Balance of the account right after this entry, in the currency's decimal places.
-          example: "120.00"
 
     Problem:
       type: object

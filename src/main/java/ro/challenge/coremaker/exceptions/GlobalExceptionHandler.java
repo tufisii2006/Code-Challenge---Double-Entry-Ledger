@@ -30,7 +30,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(TransactionAlreadyReversedException.class)
     public ResponseEntity<ErrorResponse> handleTransactionAlreadyReversedException(TransactionAlreadyReversedException ex) {
-        return error(HttpStatus.BAD_REQUEST, "TRANSACTION_ALREADY_REVERSED", ex.getMessage());
+        return error(HttpStatus.CONFLICT, "TRANSACTION_ALREADY_REVERSED", ex.getMessage());
     }
 
     @ExceptionHandler(LedgerRuleViolation.class)

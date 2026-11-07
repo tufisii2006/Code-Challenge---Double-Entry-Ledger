@@ -103,11 +103,20 @@ public class TransactionService {
 
 
     @Transactional
-    public TransactionEntity reverseTransaction(String originalId, String idempotencyKey) {
+    public Transaction reverseTransaction(String originalId, String idempotencyKey) {
         // Idempotency: if this key was already used, return the transaction it created
         Optional<TransactionEntity> existing = transactionRepository.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
-            return existing.get();
+            log.info("Returning the same transaction entity: {}", existing.get());
+            return new Transaction().id(UUID.fromString(existing.get().getId()))
+                .entries(existing.get().getEntries().stream().map(ent ->
+                        new Entry().accountId(UUID.fromString(ent.getAccount().getId()))
+                            .amount(String.valueOf(ent.getAmount()))
+                            .direction(Entry.DirectionEnum.fromValue(ent.getDirection().toString()))
+                    )
+                    .toList())
+                .recordedAt(existing.get().getRecordedAt().toString())
+                .description(existing.get().getDescription());
         }
 
         TransactionEntity original = transactionRepository.findById(originalId)
@@ -120,7 +129,7 @@ public class TransactionService {
 
         // A transaction can be reversed only once
         if (transactionRepository.findByReversesId(originalId).isPresent()) {
-            throw new TransactionAlreadyReversedException(originalId);
+            throw new TransactionAlreadyReversedException("The transaction was already reverted. TransactionID: " + originalId);
         }
 
         // Lock the accounts in id order, same as for a normal transaction
@@ -173,8 +182,11 @@ public class TransactionService {
             .build();
 
         TransactionEntity saved = transactionRepository.save(reversal);
+        log.info("Sending transaction reversal to Kafka: {}", saved);
         eventPublisher.publishEvent(TransactionRecordedEvent.from(saved));
-        return saved;
+        return new Transaction().description("Reversal of " + originalId)
+            .reversesId(UUID.fromString(original.getId()))
+            .id(UUID.fromString(reversal.getId()));
     }
 
     // "100.50" in EUR -> 10050. Java's Currency already knows the decimal places (EUR 2, JPY 0).
