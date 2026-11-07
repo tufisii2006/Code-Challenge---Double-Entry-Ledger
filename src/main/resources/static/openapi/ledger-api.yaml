@@ -80,6 +80,40 @@ paths:
                 message: An unexpected error occurred
                 timestamp: "2026-11-07T10:00:00Z"
 
+  /v1/accounts/{accountId}:
+      get:
+        operationId: getAccount
+        summary: Get an account with its current balance
+        tags:
+          - Accounts
+        parameters:
+          - name: accountId
+            in: path
+            required: true
+            description: Account identifier (UUID).
+            schema:
+              type: string
+              format: uuid
+              example: "3f2a9c1e-8b4d-4e7a-9f10-2c6d5a7b8e01"
+        responses:
+          "200":
+            description: The account.
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Account"
+          "400":
+            description: accountId is not a valid UUID.
+            content:
+              application/problem+json:
+                schema:
+                  $ref: "#/components/schemas/ErrorResponse"
+          "404":
+            description: No account with this id.
+            content:
+              application/problem+json:
+                schema:
+                  $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
 
@@ -147,7 +181,6 @@ components:
 
         createdAt:
           type: string
-          format: date-time
           readOnly: true
 
     ErrorResponse:
