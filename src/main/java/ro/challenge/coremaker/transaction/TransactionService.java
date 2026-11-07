@@ -1,6 +1,7 @@
 package ro.challenge.coremaker.transaction;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ro.challenge.coremaker.account.AccountEntity;
@@ -9,6 +10,7 @@ import ro.challenge.coremaker.dto.CreateTransactionRequest;
 import ro.challenge.coremaker.dto.EntryRequest;
 import ro.challenge.coremaker.dto.Transaction;
 import ro.challenge.coremaker.entry.EntryEntity;
+import ro.challenge.coremaker.events.TransactionRecordedEvent;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -20,6 +22,9 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
+
+    private final ApplicationEventPublisher eventPublisher;
+
 
     @Transactional
     public Transaction createTransaction(String idempotencyKey, CreateTransactionRequest request) {
@@ -55,6 +60,8 @@ public class TransactionService {
             .build();
 
         var transactionResponse = transactionRepository.save(transaction);
+
+        eventPublisher.publishEvent(TransactionRecordedEvent.from(transactionResponse));
 
         return new Transaction().id(UUID.fromString(transactionResponse.getId()))
             .recordedAt(transaction.getRecordedAt().toString())

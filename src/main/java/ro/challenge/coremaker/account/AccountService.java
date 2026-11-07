@@ -31,6 +31,7 @@ public class AccountService {
     }
 
     public Account retrieveAccount(UUID accountId) {
+        //Should add validations later
         var accountEntity = accountRepository.findById(String.valueOf(accountId)).get();
         return new Account().balance(accountEntity.getBalance())
             .currency(accountEntity.getCurrency())
