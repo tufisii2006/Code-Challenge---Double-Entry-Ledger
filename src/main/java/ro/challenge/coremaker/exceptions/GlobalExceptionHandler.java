@@ -1,5 +1,6 @@
 package ro.challenge.coremaker.exceptions;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.errors.InvalidRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,11 +15,22 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidRequestException.class)
     public ResponseEntity<ErrorResponse> handleInvalidRequest(InvalidRequestException ex) {
         return error(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", ex.getMessage());
+    }
+
+    @ExceptionHandler(TransactionNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleTransactionNotFoundException(TransactionNotFoundException ex) {
+        return error(HttpStatus.BAD_REQUEST, "TRANSACTION_NOT_FOUND", ex.getMessage());
+    }
+
+    @ExceptionHandler(TransactionAlreadyReversedException.class)
+    public ResponseEntity<ErrorResponse> handleTransactionAlreadyReversedException(TransactionAlreadyReversedException ex) {
+        return error(HttpStatus.BAD_REQUEST, "TRANSACTION_ALREADY_REVERSED", ex.getMessage());
     }
 
     @ExceptionHandler(LedgerRuleViolation.class)
@@ -44,6 +56,7 @@ public class GlobalExceptionHandler {
             .code(code)
             .message(message)
             .timestamp(OffsetDateTime.now(ZoneOffset.UTC));
+        log.error("Error: {}", body.toString());
         return ResponseEntity.status(status).body(body);
     }
 }

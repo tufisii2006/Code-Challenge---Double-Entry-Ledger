@@ -98,21 +98,15 @@ paths:
   /v1/transactions/{transactionId}/reversals:
     post:
       operationId: reverseTransaction
-      summary: Reverse a transaction by recording a new transaction with all entries flipped
+      summary: Reverse a transaction. Records a new transaction with every entry flipped.
       tags:
         - Transactions
       parameters:
         - $ref: "#/components/parameters/TransactionId"
         - $ref: "#/components/parameters/IdempotencyKey"
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ReverseTransactionRequest"
       responses:
         "201":
-          description: Reversal recorded. A retry with the same Idempotency-Key returns this same response.
+          description: Reversal recorded. A retry with the same Idempotency-Key returns the same reversal.
           headers:
             Location:
               description: URL of the reversal transaction.
@@ -124,7 +118,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Transaction"
         "400":
-          description: transactionId is not a valid UUID.
+          description: transactionId is not a valid UUID, or Idempotency-Key is missing.
           content:
             application/problem+json:
               schema:
@@ -136,13 +130,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problem"
         "409":
-          description: The transaction was already reversed, or the Idempotency-Key was used with a different request.
+          description: The transaction was already reversed.
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
         "422":
-          description: The reversal breaks a ledger rule, such as an overdraft limit.
+          description: >
+            The target is a reversal and cannot be reversed, or the reversal would take an
+            account past its overdraft limit.
           content:
             application/problem+json:
               schema:

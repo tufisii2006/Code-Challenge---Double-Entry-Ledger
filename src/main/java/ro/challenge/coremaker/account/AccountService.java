@@ -1,5 +1,7 @@
 package ro.challenge.coremaker.account;
 
+import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.common.errors.InvalidRequestException;
 import org.springframework.stereotype.Service;
 import ro.challenge.coremaker.dto.Account;
 import ro.challenge.coremaker.dto.CreateAccountRequest;
@@ -7,6 +9,7 @@ import ro.challenge.coremaker.dto.CreateAccountRequest;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class AccountService {
 
     private final AccountRepository accountRepository;
@@ -16,6 +19,7 @@ public class AccountService {
     }
 
     public Account createAccount(CreateAccountRequest createAccountRequest) {
+        log.info("Creating account: {}", createAccountRequest);
         CurrencyValidator.validate(createAccountRequest.getCurrency());
         var accountEntity = AccountEntity.builder()
             .currency(createAccountRequest.getCurrency())
@@ -32,8 +36,9 @@ public class AccountService {
     }
 
     public Account retrieveAccount(UUID accountId) {
-        //Should add validations later
-        var accountEntity = accountRepository.findById(String.valueOf(accountId)).get();
+        log.info("Retrieving account: {}", accountId);
+        var accountEntity = accountRepository.findById(String.valueOf(accountId))
+            .orElseThrow(() -> new InvalidRequestException("Cannot find account with id: " + accountId));
         return new Account().balance(accountEntity.getBalance())
             .currency(accountEntity.getCurrency())
             .version(accountEntity.getVersion())
@@ -41,6 +46,5 @@ public class AccountService {
             .createdAt(accountEntity.getCreatedAt().toString())
             .id(UUID.fromString(accountEntity.getId()));
     }
-
 
 }

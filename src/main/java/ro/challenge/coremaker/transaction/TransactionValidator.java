@@ -11,7 +11,6 @@ import ro.challenge.coremaker.exceptions.LedgerRuleViolation;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
@@ -25,12 +24,8 @@ public class TransactionValidator {
      * its debits and its credits add up to the same total
      * no account would go past its overdraft limit
      */
-    public Optional<TransactionEntity> validate(Optional<TransactionEntity> existing,
-                                                Map<String, AccountEntity> accounts,
-                                                CreateTransactionRequest request) {
-        if (existing.isPresent()) {
-            throw new LedgerRuleViolation("There is already a transaction with this idempotency key:" + existing.get().getIdempotencyKey());
-        }
+    public void validate(Map<String, AccountEntity> accounts,
+                         CreateTransactionRequest request) {
         if (accounts.size() != 2) {
             throw new LedgerRuleViolation("One or more accounts are invalid");
         }
@@ -41,7 +36,6 @@ public class TransactionValidator {
             throw new LedgerRuleViolation("Accounts must be in the same currency");
         }
         validateEntries(request.getEntries());
-        return Optional.empty();
     }
 
     private static void validateEntries(List<EntryRequest> entries) {
