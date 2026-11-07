@@ -103,14 +103,52 @@
 
 				<executions>
 					<execution>
-						<id>generate-api</id>
+						<id>generate-account-api</id>
 						<goals>
 							<goal>generate</goal>
 						</goals>
 
 						<configuration>
 							<inputSpec>
-								${project.basedir}/src/main/resources/static/openapi/ledger-api.yaml
+								${project.basedir}/src/main/resources/static/openapi/account-api.yaml
+							</inputSpec>
+
+							<generatorName>spring</generatorName>
+
+							<apiPackage>
+								ro.challenge.coremaker.api
+							</apiPackage>
+
+							<modelPackage>
+								ro.challenge.coremaker.dto
+							</modelPackage>
+
+							<output>
+								${project.build.directory}/generated-sources/openapi
+							</output>
+
+							<configOptions>
+								<useSpringBoot4>true</useSpringBoot4>
+								<useJackson3>true</useJackson3>
+								<interfaceOnly>true</interfaceOnly>
+								<useTags>true</useTags>
+								<skipDefaultInterface>true</skipDefaultInterface>
+								<useBeanValidation>true</useBeanValidation>
+								<openApiNullable>false</openApiNullable>
+							</configOptions>
+
+						</configuration>
+					</execution>
+
+					<execution>
+						<id>generate-transaction-api</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+
+						<configuration>
+							<inputSpec>
+								${project.basedir}/src/main/resources/static/openapi/transaction-api.yaml
 							</inputSpec>
 
 							<generatorName>spring</generatorName>

@@ -1,0 +1,287 @@
+openapi: 3.1.0
+info:
+  title: Ledger Transactions API
+  version: 1.0.0
+  description: >
+    Records double-entry transactions. A recorded transaction is never changed.
+    A mistake is corrected by reversing it, which records a new transaction.
+servers:
+  - url: http://localhost:8080
+    description: Local development
+tags:
+  - name: Transactions
+    description: Recording and reading transactions
+
+paths:
+  /v1/transactions:
+    post:
+      operationId: createTransaction
+      summary: Record a transaction with its entries, all or nothing
+      tags:
+        - Transactions
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTransactionRequest"
+      responses:
+        "201":
+          description: Transaction recorded. A retry with the same Idempotency-Key returns this same response.
+          headers:
+            Location:
+              description: URL of the recorded transaction.
+              schema:
+                type: string
+                example: "/v1/transactions/7c9e6679-7425-40de-944b-e07fc1f90ae7"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "400":
+          description: Malformed request (bad JSON, bad UUID, bad amount format, fewer than two entries).
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: An account in the request does not exist.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: The Idempotency-Key was already used with a different request body.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "422":
+          description: >
+            Well formed, but breaks a ledger rule: unbalanced entries, overdraft limit,
+            mixed currencies, too many decimal places, unsupported currency.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /v1/transactions/{transactionId}:
+    get:
+      operationId: getTransaction
+      summary: Read a recorded transaction with its entries
+      tags:
+        - Transactions
+      parameters:
+        - $ref: "#/components/parameters/TransactionId"
+      responses:
+        "200":
+          description: The transaction.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "400":
+          description: transactionId is not a valid UUID.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: No transaction with this id.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /v1/transactions/{transactionId}/reversals:
+    post:
+      operationId: reverseTransaction
+      summary: Reverse a transaction by recording a new transaction with all entries flipped
+      tags:
+        - Transactions
+      parameters:
+        - $ref: "#/components/parameters/TransactionId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReverseTransactionRequest"
+      responses:
+        "201":
+          description: Reversal recorded. A retry with the same Idempotency-Key returns this same response.
+          headers:
+            Location:
+              description: URL of the reversal transaction.
+              schema:
+                type: string
+                example: "/v1/transactions/3e8a1d2c-5b6f-4a7e-9c0d-1f2e3d4c5b6a"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "400":
+          description: transactionId is not a valid UUID.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: No transaction with this id.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: The transaction was already reversed, or the Idempotency-Key was used with a different request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "422":
+          description: The reversal breaks a ledger rule, such as an overdraft limit.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Client-generated key. Retrying with the same key returns the same result.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+        example: "9b1d6e52-3c1a-4f0e-8a77-1f2e3d4c5b6a"
+    TransactionId:
+      name: transactionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    CreateTransactionRequest:
+      type: object
+      required: [description, entries]
+      properties:
+        description:
+          type: string
+          maxLength: 255
+          example: "Radu → Rares, 100 EUR"
+        entries:
+          type: array
+          minItems: 2
+          items:
+            $ref: "#/components/schemas/EntryRequest"
+
+    EntryRequest:
+      type: object
+      required: [accountId, direction, amount]
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        direction:
+          type: string
+          enum: [DEBIT, CREDIT]
+        amount:
+          type: string
+          pattern: "^[0-9]+(\\.[0-9]+)?$"
+          description: Positive decimal string with no more decimal places than the currency allows.
+          example: "100.00"
+
+    ReverseTransactionRequest:
+      type: object
+      properties:
+        description:
+          type: string
+          maxLength: 255
+          description: Optional. Defaults to "Reversal of <original id>".
+
+    Transaction:
+      type: object
+      required: [id, description, recordedAt, entries]
+      properties:
+        id:
+          type: string
+          format: uuid
+        description:
+          type: string
+        reversesId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Set only on reversals.
+        recordedAt:
+          type: string
+          format: date-time
+          readOnly: true
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/Entry"
+
+    Entry:
+      type: object
+      required: [id, accountId, direction, amount, balanceAfter]
+      properties:
+        id:
+          type: integer
+          format: int64
+        accountId:
+          type: string
+          format: uuid
+        direction:
+          type: string
+          enum: [DEBIT, CREDIT]
+        amount:
+          type: string
+          example: "100.00"
+        balanceAfter:
+          type: string
+          description: Balance of the account right after this entry, in the currency's decimal places.
+          example: "120.00"
+
+    Problem:
+      type: object
+      description: Error body in the RFC 9457 (problem details) format.
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+          example: "https://ledger.example.com/problems/unbalanced-transaction"
+        title:
+          type: string
+          example: "Debits and credits do not balance"
+        status:
+          type: integer
+          example: 422
+        detail:
+          type: string
+          example: "Debits total 100.00 EUR, credits total 99.00 EUR"
+        instance:
+          type: string
+          format: uri
+        errors:
+          type: array
+          description: Which part of the request is at fault, as JSON pointers.
+          items:
+            type: object
+            required: [pointer, detail]
+            properties:
+              pointer:
+                type: string
+                example: "/entries/1/amount"
+              detail:
+                type: string
+                example: "Amount has more decimal places than EUR allows"

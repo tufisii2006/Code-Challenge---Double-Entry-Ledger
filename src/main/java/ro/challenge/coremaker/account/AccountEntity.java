@@ -1,9 +1,7 @@
 package ro.challenge.coremaker.account;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -11,7 +9,8 @@ import java.time.Instant;
 
 @Entity
 @Builder
-@Data
+@Getter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @AllArgsConstructor
 @Table(name = "account")
 @EntityListeners(AuditingEntityListener.class)
