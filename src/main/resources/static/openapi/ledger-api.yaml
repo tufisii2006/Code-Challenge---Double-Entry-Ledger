@@ -1,0 +1,179 @@
+
+openapi: 3.1.0
+
+info:
+  title: Ledger API
+  description: APIs for a double-entry ledger.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+
+tags:
+  - name: Accounts
+    description: Account management
+
+paths:
+  /api/v1/accounts:
+    post:
+      tags:
+        - Accounts
+      operationId: createAccount
+      summary: Create account
+      description: |
+        Creates a new account.
+        The account balance and version are initialized to zero.
+        The account ID and creation timestamp are generated
+        by the server.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountRequest'
+            example:
+              currency: EUR
+              overdraftLimit: 10000
+
+      responses:
+        '201':
+          description: Account successfully created
+          headers:
+            Location:
+              description: URI of the created account
+              schema:
+                type: string
+                format: uri-reference
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+              example:
+                id: "550e8400-e29b-41d4-a716-446655440000"
+                currency: EUR
+                overdraftLimit: 10000
+                balance: 0
+                version: 0
+                createdAt: "2026-11-07T10:00:00Z"
+
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: VALIDATION_ERROR
+                message: Request validation failed
+                timestamp: "2026-11-07T10:00:00Z"
+                details:
+                  currency: Currency is required
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: INTERNAL_ERROR
+                message: An unexpected error occurred
+                timestamp: "2026-11-07T10:00:00Z"
+
+components:
+  schemas:
+
+    CreateAccountRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - currency
+      properties:
+        currency:
+          type: string
+          description: ISO 4217 currency code
+          pattern: '^[A-Z]{3}$'
+          examples:
+            - EUR
+            - USD
+            - JPY
+
+        overdraftLimit:
+          type: integer
+          format: int64
+          minimum: 0
+          default: 0
+          description: |
+            Maximum overdraft in minor currency units.
+            For example, 10000 represents EUR 100.00.
+
+    Account:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - currency
+        - overdraftLimit
+        - balance
+        - version
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+
+        overdraftLimit:
+          type: integer
+          format: int64
+          minimum: 0
+
+        balance:
+          type: integer
+          format: int64
+          readOnly: true
+          description: Current balance in minor currency units.
+
+        version:
+          type: integer
+          format: int64
+          minimum: 0
+          readOnly: true
+          description: Optimistic locking version.
+
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - message
+        - timestamp
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code
+          examples:
+            - VALIDATION_ERROR
+            - ACCOUNT_CONFLICT
+            - INTERNAL_ERROR
+
+        message:
+          type: string
+          description: Human-readable error message
+        timestamp:
+          type: string
+          format: date-time
+        details:
+          type: object
+          description: Additional validation or error details
+          additionalProperties:
+            type: string
