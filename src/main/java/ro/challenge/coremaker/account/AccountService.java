@@ -16,6 +16,7 @@ public class AccountService {
     }
 
     public Account createAccount(CreateAccountRequest createAccountRequest) {
+        CurrencyValidator.validate(createAccountRequest.getCurrency());
         var accountEntity = AccountEntity.builder()
             .currency(createAccountRequest.getCurrency())
             .balance(0)
@@ -40,4 +41,6 @@ public class AccountService {
             .createdAt(accountEntity.getCreatedAt().toString())
             .id(UUID.fromString(accountEntity.getId()));
     }
+
+
 }

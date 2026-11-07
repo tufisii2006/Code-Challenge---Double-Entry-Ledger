@@ -20,19 +20,25 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TransactionService {
 
+
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
 
     private final ApplicationEventPublisher eventPublisher;
-
+    private final TransactionValidator transactionValidator;
 
     @Transactional
     public Transaction createTransaction(String idempotencyKey, CreateTransactionRequest request) {
+
+        Optional<TransactionEntity> existingTransaction = transactionRepository.findByIdempotencyKey(idempotencyKey);
+
         Map<String, AccountEntity> accounts = accountRepository.findAllById(
                 request.getEntries().stream()
                     .map(e -> e.getAccountId().toString())
                     .collect(Collectors.toSet())).stream()
             .collect(Collectors.toMap(AccountEntity::getId, a -> a));
+
+        transactionValidator.validate(existingTransaction, accounts, request);
 
         List<EntryEntity> entries = new ArrayList<>();
         for (EntryRequest entry : request.getEntries()) {
