@@ -5,3 +5,6 @@ databaseChangeLog:
   - include:
       file: db/changelog/002-settlement-accounts.sql
       relativeToChangelogFile: false
+  - include:
+      file: db/changelog/003-add-mock-users.sql
+      relativeToChangelogFile: false
